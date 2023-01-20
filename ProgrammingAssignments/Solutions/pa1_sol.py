@@ -41,21 +41,28 @@ class Perceptron:
         self.dim = dim
 
     def get_wrongs(self,x_data,y_data):
-        #this method should generate set of wrongly labeled data
-        #Return: size of set, as well as the set itself (both x + y)
-        return None
+        b_idx = (y_data * (self.w @ x_data)) < 0
+        b_num = sum(b_idx)
+        return b_num, x_data[:,b_idx], y_data[b_idx]
 
     def fit_w(self,x_data,y_data,printing = False):
-        #This method should implement the perceptron Algorithm
-        #_,_,_ = self.get_wrongs(x_data,y_data)
-        while None:
-            ### Algo goes here
-        ## update w and return # of steps to completion 
-        return None
+        n, xb, yb = self.get_wrongs(x_data,y_data)
+        j = 0 
+        while n > 0:
+            r_idx = np.random.randint(n)
+            w = self.w + yb[r_idx] * xb[:,r_idx]
+            self.w = w 
+            n, xb, yb = self.get_wrongs(x_data,y_data)
+            if printing:
+                if j % 25 == 0:
+                    print(f"iteration {j}, and wrongs {n}")
+            j+=1
+        bound = (la.norm(self.w) * la.norm(x_data,axis = 0).max())**2
+        return j, bound
 
     def eval_w(self,x_test,y_test):
-        #evaluate accuracy of perceptron on data set x_test, y_test
-        return None 
+        n, _, _ = self.get_wrongs(x_test,y_test)
+        return 1.0 - float(n/x_test.shape[1])
         
 def plot_2D(n = 1000,show = True):
     plt.clf()
