@@ -2,10 +2,10 @@ paper,author,url,student,student,student,student
 A generalizable and accessible approach to machine learning with global satellite imagery,Rolf et. Al,https://www.nature.com/articles/s41467-021-24638-z,Zan Ahmad,Avisha Kumar,Daniel,
 Random Features for Large-Scale Kernel Machines,Rahimi + Recht,https://people.eecs.berkeley.edu/~brecht/papers/07.rah.rec.nips.pdf,Zan Ahmad,Drew Henrichsen,,Jingbo Y
 Dropout: A Simple Way to Prevent Neural Networks from Overfitting,Srivastava ,https://jmlr.org/papers/v15/srivastava14a.html,Eleanor Belkin,Carolyna Yamamoto,,Drew Henrichsen
-Generative Adversarial Nets ,Goodfellow,https://arxiv.org/pdf/1406.2661.pdf,Carolyna Yamamoto,Avisha Kumar,,
+Generative Adversarial Nets ,Goodfellow,https://arxiv.org/pdf/1406.2661.pdf,Carolyna Yamamoto,Avisha Kumar,Yihong Guo,
 Uniform Approximation of Functions with Random Bases,Rahimi + Recht,https://authors.library.caltech.edu/75528/1/04797607.pdf,Zan Ahmad,,,
 Support Vector Machines Under Adversarial Label Noise ,Biggio ,https://proceedings.mlr.press/v20/biggio11/biggio11.pdf,Jack Krew,,,
-ADAM: A Method for Stochastic Optimization,Kingma,https://arxiv.org/pdf/1412.6980.pdf,Eleanor Belkin,,Drew Henrichsen,Jingbo Y
+ADAM: A Method for Stochastic Optimization,Kingma,https://arxiv.org/pdf/1412.6980.pdf,Eleanor Belkin,Yihong Guo,Drew Henrichsen,Jingbo Y
 Batch Normalization: �,Ioffe and Szegedy,https://arxiv.org/pdf/1502.03167.pdf,,,,
 Intriguing Properties of Neural Networks,Szegedy,https://arxiv.org/pdf/1312.6199.pdf,Eleanor Belkin,Carolyna Yamamoto,Daniel, Anqi Feng
 Explaining and Harnessing Adversarial Examples,Goodfellow + Szegedy ,https://arxiv.org/pdf/1412.6572.pdf,Avisha Kumar,Daniel,Jack Krew,Anqi Feng
