@@ -41,25 +41,31 @@ class Perceptron:
         self.dim = dim
 
     def get_wrongs(self, x_data, y_data):
-        # this method should generate set of wrongly labeled data
+        # This method should generate set of wrongly labeled data
         # Return: size of set, as well as the set itself (both x + y)
-        wrong_idx = (y_data * (self.w @ x_data)) < 0
-        total_wrong = sum(wrong_idx)
+        wrong_idx = (y_data * (self.w @ x_data)) < 0  # negative because the correct ones have matching signs
+        total_wrong = sum(wrong_idx)  # total number of True indices
         return x_data[:, wrong_idx], y_data[wrong_idx], total_wrong
 
-    # def fit_w(self, x_data, y_data, printing=False):
-    #     # TODO
-    #     # This method should implement the perceptron Algorithm
-    #     # _,_,_ = self.get_wrongs(x_data,y_data)
-    #     while None:
-    #     ### Algo goes here
-    #     ## update w and return # of steps to completion
-    #     return None
-    #
-    # def eval_w(self, x_test, y_test):
-    #     # TODO
-    #     # evaluate accuracy of perceptron on data set x_test, y_test
-    #     return None
+    def fit_w(self, x_data, y_data, printing=False):
+        # This method should implement the perceptron Algorithm
+        # Update w and return # of steps to completion
+        x_wrong, y_wrong, n_wrong = self.get_wrongs(x_data, y_data)
+        s = 0
+        while n_wrong > 0:
+            i = np.random.randint(n_wrong)
+            self.w += y_wrong[i] * x_wrong[:, i]
+            x_wrong, y_wrong, n_wrong = self.get_wrongs(x_data, y_data)
+            s += 1
+        bound = 0  # TODO
+        return s, bound
+
+    def eval_w(self, x_test, y_test):
+        # Evaluate accuracy of perceptron on data set x_test, y_test
+        x_wrong, y_wrong, n_wrong = self.get_wrongs(x_test, y_test)
+        n_total = y_test.shape[0]
+        acc = np.round(1 - n_wrong/n_total, 5)
+        return acc
 
 
 def plot_2D(n=1000, show=True):
