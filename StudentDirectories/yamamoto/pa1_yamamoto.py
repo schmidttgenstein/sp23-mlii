@@ -57,7 +57,9 @@ class Perceptron:
             self.w += y_wrong[i] * x_wrong[:, i]
             x_wrong, y_wrong, n_wrong = self.get_wrongs(x_data, y_data)
             s += 1
-        bound = 0  # TODO
+        r = np.max(np.linalg.norm(x_data, axis=0))
+        M = np.min(np.linalg.norm(self.w))
+        bound = (r*M)**2
         return s, bound
 
     def eval_w(self, x_test, y_test):
