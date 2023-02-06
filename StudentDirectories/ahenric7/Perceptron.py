@@ -43,19 +43,46 @@ class Perceptron:
     def get_wrongs(self,x_data,y_data):
         #this method should generate set of wrongly labeled data
         #Return: size of set, as well as the set itself (both x + y)
-        return None
+        #print(self.w @ x_data, y_data)
+        #print(self.w @ x_data * y_data)
+        #print(np.shape(self.w @ x_data))
+        #print(np.shape(x_data), np.shape(y_data))
+        #print(self.w)
+        
+        mask = self.w @ x_data * y_data < 0 # get the locations of the wrong answers
+        #print(mask)
+        size = np.sum(mask)
+        x_wrong = x_data[:,mask]
+        y_wrong = y_data[mask] # note these are in the same order they were before the masking, so the ordered x,y pairs are preserved.
+        #print(size, x_wrong, y_wrong)
+        return size, x_wrong, y_wrong
 
-    def fit_w(self,x_data,y_data,printing = False):
+    def fit_w(self,x_data,y_data,printing = False): # note that printing also needs to be implemented.
         #This method should implement the perceptron Algorithm
-        #_,_,_ = self.get_wrongs(x_data,y_data)
-        while None:
-            ### Algo goes here
+        size, x_wrong, y_wrong = self.get_wrongs(x_data,y_data)
+        iterations = 0
+        while size > 0 :
+            selection = np.random.randint(size) # index for random selection from the wrong values
+            # update w based on this selection
+            x_select = x_wrong[:, selection]
+            y_select = y_wrong[selection]
+            w = self.w + x_select * y_select
+            self.w = w
+            iterations += 1
+            
+            size, x_wrong, y_wrong = self.get_wrongs(x_data,y_data) # Check again to see which data points are wrong now.
+            #if iterations > 1000: 
+            #    break
         ## update w and return # of steps to completion 
-        return None
+        r = la.norm(x_data, axis = 0).max()
+        M = la.norm(self.w)/(la.norm(np.abs(self.w @ x_data * y_data)).min())
+        bound = (r * M)** 2
+        return iterations, bound
 
     def eval_w(self,x_test,y_test):
         #evaluate accuracy of perceptron on data set x_test, y_test
-        return None 
+        correctness = self.w@x_test * y_test > 0
+        return sum(correctness)/len(correctness)
         
 def plot_2D(n = 1000,show = True):
     plt.clf()
@@ -111,7 +138,7 @@ if __name__ == "__main__":
     ## Step 1: visualize data
     #plot_2D(n = 10000)
     ## Step 2: Check instance performance of model 
-    #one_run(n= 1000)
+    one_run(n= 1000)
     ## Step 3: Check complexity, empirically
     many_runs()
     
