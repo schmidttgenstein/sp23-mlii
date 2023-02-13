@@ -3,7 +3,6 @@ import pandas as pd
 import numpy.linalg as la
 import matplotlib.pyplot as plt
 import warnings
-
 warnings.filterwarnings('ignore')
 
 
@@ -78,6 +77,7 @@ class UniversalApprox:
     def solve_ab(self, x, y):
         # solves for a,b in sigma above
         # ensure you understand how / what this solves for
+        # x[0] = y[0] and x[1] = y[1]
         l0 = y[0] / (1 - y[0])
         l1 = y[1] / (1 - y[1])
         A = np.array([[np.log(l0), 1], [np.log(l1), 1]])
@@ -94,9 +94,23 @@ class UniversalApprox:
                 2. function evaluations at bump function's apex
                 3. array of a,b parameters defining the bump functions
         """
-        return None
+        # TODO
+        t_min = t_in[0]
+        t_max = t_in[-1]
+        n_extended = t_in.shape[0]+2*j_ext
+        t_extended = np.linspace(t_min-abs(t_in[j_ext]), t_max+abs(t_in[j_ext]), n_extended)
+        f_eval = fun(t_extended)
+        ab_params = np.zeros([n_extended, 2])
+        delta_t = t_in[1] - t_in[0]
+        for j, t in enumerate(t_extended):
+            x = np.array([t_extended[j], t_extended[j] - delta_t])
+            y = np.array([1-self.eps, 0+self.eps])
+            ab = self.solve_ab(x, y)
+            # print("x:", x, "y:", y, "alpha:", ab[0], "beta:", ab[1])
+            ab_params[j, :] = ab.reshape((1, 2))
+        return t_extended, f_eval, ab_params
 
-    def approx_fun(self, t_in, fun, j_ext=10, t_eval=None):
+    def approx_fun(self, t_in, fun, j_ext=10, t_eval=None, plotting=True):
         """
             This method uses the bump function parameters you computed
             from find_nn_parameters, and returns a function's approximation as
@@ -110,7 +124,45 @@ class UniversalApprox:
             which will likely have courser granularity than t_eval. Because you may want something smooth looking,
             you'll use t_eval to plot *output*
         """
-        return None
+        # TODO: t_space filtered how?
+        if plotting:
+            fig = plt.figure(figsize=(8, 6))
+            ax1 = fig.add_subplot(2, 2, 1)
+            ax2 = fig.add_subplot(2, 2, 2)
+            ax3 = fig.add_subplot(2, 2, 3)
+            ax4 = fig.add_subplot(2, 2, 4)
+            ax1.title.set_text("Sigmoids")
+            ax2.title.set_text("Bumps")
+            ax3.title.set_text("Scaled bumps")
+            ax4.title.set_text("Approximation")
+        t_extended, f_eval, ab_params = self.find_nn_params(t_in, fun, j_ext)
+        t_eval = t_extended
+        if t_eval is not None:
+            t_extended = t_eval
+        t_space = t_extended
+        n_bumps = t_extended.shape[0]
+        n_f = f_eval.shape[0]
+        y_approx = np.zeros(n_bumps)
+        yi_bumps = np.zeros([n_f-1, n_bumps])
+        for j in np.arange(0, n_f-1):
+            current_sigma = self.sigma(t_extended, ab_params[j, 0], ab_params[j, 1])
+            next_sigma = self.sigma(t_extended, ab_params[j+1, 0], ab_params[j+1, 1])
+            bump = current_sigma - next_sigma
+            bump_scaled = f_eval[j] * bump
+            yi_bumps[j, :] = bump_scaled
+            y_approx += bump_scaled
+            if plotting:
+                ax1.plot(t_extended, current_sigma)
+                if j == n_f-1:
+                    ax1.plot(t_extended, next_sigma)
+                ax2.plot(t_extended, bump)
+                ax3.plot(t_extended, bump_scaled)
+        if plotting:
+            ax4.plot(t_extended, y_approx, label="approximation using po1")
+            ax4.plot(t_eval, f_eval, label="f(t)")
+            ax4.legend(loc="upper left")
+            plt.show()
+        return t_space, y_approx, yi_bumps
 
     def wiggles_fun(self, t):
         return np.sin(5 * t) * np.exp(t)
@@ -130,10 +182,16 @@ class UANet(MLPipeline):
         w_temp = params[0]
         b_temp = params[1]
         f_temp = params[2]
+        # TODO
 
     def forward(self, x):
         # computes the forward pass for network x -> z = wx+b -> a = sigm(z) -> c*a
-        return None
+        # TODO
+        z = self.weights.transpose() @ x + self.bias.transpose()
+        a = self.sigmoid(z)
+        f = self.f_val @ a
+        g = f[-1]
+        return g
 
     def backward(self, x_in, y_truth):
         # Do not implement
@@ -167,11 +225,11 @@ if __name__ == "__main__":
     # Step 1: instantiate your UniversalApprox Object
     eps = .025
     ua = UniversalApprox(epsilon=eps)
-    x_lim = 3
 
     # Step 2: Generate approximations with po1
     # If you use my wiggles_fun, it has an exp, so don't go wild on your domain
     # need sample linspace for function approximation, and denser linspace for evaluation
+    x_lim = 3
     t_space = np.linspace(0, x_lim, 30)
     t_dense = np.linspace(0, x_lim, 2500)
     # 2.a: check the a,b solve
@@ -183,27 +241,31 @@ if __name__ == "__main__":
     sigm = ua.sigma(t_dense, ab[0], ab[1])
     plt.figure(0)
     plt.plot(t_dense, sigm)
+    plt.show()
     # 2.b, th bulk of your work will be here: define the approximation method using
     # c-inf bump functions, as defined by successive differences of sigmoidals
     t_eval, y_approx, y_incs = ua.approx_fun(t_space, ua.wiggles_fun, t_eval=t_dense)
     y_truth = ua.fun(t_eval)
     y_err = y_truth-y_approx
-    if plotting: 
+    if plotting:
         plt.figure(1)
-        plt.plot(t_eval, y_approx, label='approximation w/ po1')
-        plt.plot(t_eval, y_truth, label='truth')
+        plt.plot(t_eval, y_approx, label="approximation w/ po1")
+        plt.plot(t_eval, y_truth, label="truth")
         plt.legend()
-        plt.xlabel('t')
-        plt.ylabel('y')
+        plt.xlabel("t")
+        plt.ylabel("y")
+        plt.show()
         plt.figure(2)
         plt.plot(t_eval, y_err)
-        plt.xlabel('t')
-        plt.ylabel('err')
+        plt.xlabel("t")
+        plt.ylabel("err")
+        plt.show()
         plt.figure(3)
-        for j in range(y_incs.shape[1]):
-            plt.plot(t_eval, y_incs[:, j])
-        plt.xlabel('t')
-        plt.ylabel('y')
+        for j in range(y_incs.shape[0]):
+            plt.plot(t_eval, y_incs[j, :])
+        plt.xlabel("t")
+        plt.ylabel("y")
+        plt.show()
 
     # Step 3: Extract weights for Neural Net and instantiate object
     _, s, ab = ua.find_nn_params(t_in=np.linspace(0, x_lim, 250), fun=ua.wiggles_fun)
