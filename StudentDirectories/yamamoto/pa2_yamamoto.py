@@ -94,7 +94,6 @@ class UniversalApprox:
                 2. function evaluations at bump function's apex
                 3. array of a,b parameters defining the bump functions
         """
-        # TODO
         t_min = t_in[0]
         t_max = t_in[-1]
         n_extended = t_in.shape[0]+2*j_ext
@@ -104,7 +103,7 @@ class UniversalApprox:
         delta_t = t_in[1] - t_in[0]
         for j, t in enumerate(t_extended):
             x = np.array([t_extended[j], t_extended[j] - delta_t])
-            y = np.array([1-self.eps, 0+self.eps])
+            y = np.array([1-self.eps/2, 0+self.eps/2])
             ab = self.solve_ab(x, y)
             # print("x:", x, "y:", y, "alpha:", ab[0], "beta:", ab[1])
             ab_params[j, :] = ab.reshape((1, 2))
@@ -124,7 +123,6 @@ class UniversalApprox:
             which will likely have courser granularity than t_eval. Because you may want something smooth looking,
             you'll use t_eval to plot *output*
         """
-        # TODO: t_space filtered how?
         if plotting:
             fig = plt.figure(figsize=(8, 6))
             ax1 = fig.add_subplot(2, 2, 1)
@@ -135,31 +133,30 @@ class UniversalApprox:
             ax2.title.set_text("Bumps")
             ax3.title.set_text("Scaled bumps")
             ax4.title.set_text("Approximation")
-        t_extended, f_eval, ab_params = self.find_nn_params(t_in, fun, j_ext)
-        t_eval = t_extended
-        if t_eval is not None:
-            t_extended = t_eval
-        t_space = t_extended
-        n_bumps = t_extended.shape[0]
+        t_space, f_eval, ab_params = self.find_nn_params(t_in, fun, j_ext)
+        t_plot = t_space
+        if t_eval:
+            t_space = t_eval
+        n_bumps = t_space.shape[0]
         n_f = f_eval.shape[0]
         y_approx = np.zeros(n_bumps)
         yi_bumps = np.zeros([n_f-1, n_bumps])
         for j in np.arange(0, n_f-1):
-            current_sigma = self.sigma(t_extended, ab_params[j, 0], ab_params[j, 1])
-            next_sigma = self.sigma(t_extended, ab_params[j+1, 0], ab_params[j+1, 1])
+            current_sigma = self.sigma(t_space, ab_params[j, 0], ab_params[j, 1])
+            next_sigma = self.sigma(t_space, ab_params[j+1, 0], ab_params[j+1, 1])
             bump = current_sigma - next_sigma
             bump_scaled = f_eval[j] * bump
             yi_bumps[j, :] = bump_scaled
             y_approx += bump_scaled
             if plotting:
-                ax1.plot(t_extended, current_sigma)
+                ax1.plot(t_space, current_sigma)
                 if j == n_f-1:
-                    ax1.plot(t_extended, next_sigma)
-                ax2.plot(t_extended, bump)
-                ax3.plot(t_extended, bump_scaled)
+                    ax1.plot(t_space, next_sigma)
+                ax2.plot(t_space, bump)
+                ax3.plot(t_space, bump_scaled)
         if plotting:
-            ax4.plot(t_extended, y_approx, label="approximation using po1")
-            ax4.plot(t_eval, f_eval, label="f(t)")
+            ax4.plot(t_space, y_approx, label="approximation using po1")
+            ax4.plot(t_plot, f_eval, label="f(t)")
             ax4.legend(loc="upper left")
             plt.show()
         return t_space, y_approx, yi_bumps
@@ -186,7 +183,6 @@ class UANet(MLPipeline):
 
     def forward(self, x):
         # computes the forward pass for network x -> z = wx+b -> a = sigm(z) -> c*a
-        # TODO
         z = self.weights.transpose() @ x + self.bias.transpose()
         a = self.sigmoid(z)
         f = self.f_val @ a
