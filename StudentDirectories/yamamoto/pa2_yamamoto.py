@@ -97,7 +97,7 @@ class UniversalApprox:
         t_min = t_in[0]
         t_max = t_in[-1]
         n_extended = t_in.shape[0]+2*j_ext
-        t_extended = np.linspace(t_min-abs(t_in[j_ext]), t_max+abs(t_in[j_ext]), n_extended)
+        t_extended = np.linspace(t_min-t_in[j_ext], t_max+t_in[j_ext], n_extended)
         f_eval = fun(t_extended)
         ab_params = np.zeros([n_extended, 2])
         delta_t = t_in[1] - t_in[0]
@@ -109,7 +109,7 @@ class UniversalApprox:
             ab_params[j, :] = ab.reshape((1, 2))
         return t_extended, f_eval, ab_params
 
-    def approx_fun(self, t_in, fun, j_ext=10, t_eval=None, plotting=True):
+    def approx_fun(self, t_in, fun, j_ext=10, t_eval=None, plotting=False):
         """
             This method uses the bump function parameters you computed
             from find_nn_parameters, and returns a function's approximation as
@@ -126,16 +126,15 @@ class UniversalApprox:
         if plotting:
             fig = plt.figure(figsize=(8, 6))
             ax1 = fig.add_subplot(2, 2, 1)
-            ax2 = fig.add_subplot(2, 2, 2)
-            ax3 = fig.add_subplot(2, 2, 3)
+            ax2 = fig.add_subplot(2, 2, 3)
+            ax3 = fig.add_subplot(2, 2, 2)
             ax4 = fig.add_subplot(2, 2, 4)
             ax1.title.set_text("Sigmoids")
             ax2.title.set_text("Bumps")
             ax3.title.set_text("Scaled bumps")
             ax4.title.set_text("Approximation")
         t_space, f_eval, ab_params = self.find_nn_params(t_in, fun, j_ext)
-        t_plot = t_space
-        if t_eval:
+        if t_eval is not None:
             t_space = t_eval
         n_bumps = t_space.shape[0]
         n_f = f_eval.shape[0]
@@ -155,9 +154,10 @@ class UniversalApprox:
                 ax2.plot(t_space, bump)
                 ax3.plot(t_space, bump_scaled)
         if plotting:
+            ax4.plot(t_space, self.fun(t_space), label="f(t)")
             ax4.plot(t_space, y_approx, label="approximation using po1")
-            ax4.plot(t_plot, f_eval, label="f(t)")
             ax4.legend(loc="upper left")
+            fig.tight_layout()
             plt.show()
         return t_space, y_approx, yi_bumps
 
@@ -176,10 +176,12 @@ class UANet(MLPipeline):
             Aside from hashing out the constructor, you will only need to implement the forward method for this 
             class, how simple!
         """
-        w_temp = params[0]
+        w_temp = 1/params[0]  # TODO: why 1/w?
         b_temp = params[1]
         f_temp = params[2]
-        # TODO
+        self.weights = w_temp.reshape((1, w_temp.shape[0]))
+        self.bias = b_temp.reshape((1, b_temp.shape[0]))
+        self.f_val = np.stack((f_temp, f_temp))
 
     def forward(self, x):
         # computes the forward pass for network x -> z = wx+b -> a = sigm(z) -> c*a
@@ -216,7 +218,7 @@ class UANet(MLPipeline):
 
 
 if __name__ == "__main__":
-    plotting = False
+    plotting = True
 
     # Step 1: instantiate your UniversalApprox Object
     eps = .025
@@ -235,37 +237,38 @@ if __name__ == "__main__":
     y_points = np.array([eps, 1-eps])
     ab = ua.solve_ab(x_points, y_points)
     sigm = ua.sigma(t_dense, ab[0], ab[1])
-    plt.figure(0)
-    plt.plot(t_dense, sigm)
-    plt.show()
+    # if plotting:
+    #     plt.figure(0)
+    #     plt.plot(t_dense, sigm)
+    #     plt.show()
     # 2.b, th bulk of your work will be here: define the approximation method using
     # c-inf bump functions, as defined by successive differences of sigmoidals
-    t_eval, y_approx, y_incs = ua.approx_fun(t_space, ua.wiggles_fun, t_eval=t_dense)
+    t_eval, y_approx, y_incs = ua.approx_fun(t_space, ua.wiggles_fun, t_eval=t_dense, plotting=plotting)
     y_truth = ua.fun(t_eval)
     y_err = y_truth-y_approx
-    if plotting:
-        plt.figure(1)
-        plt.plot(t_eval, y_approx, label="approximation w/ po1")
-        plt.plot(t_eval, y_truth, label="truth")
-        plt.legend()
-        plt.xlabel("t")
-        plt.ylabel("y")
-        plt.show()
-        plt.figure(2)
-        plt.plot(t_eval, y_err)
-        plt.xlabel("t")
-        plt.ylabel("err")
-        plt.show()
-        plt.figure(3)
-        for j in range(y_incs.shape[0]):
-            plt.plot(t_eval, y_incs[j, :])
-        plt.xlabel("t")
-        plt.ylabel("y")
-        plt.show()
+    # if plotting:
+    #     plt.figure(1)
+    #     plt.plot(t_eval, y_approx, label="approximation w/ po1")
+    #     plt.plot(t_eval, y_truth, label="truth")
+    #     plt.legend()
+    #     plt.xlabel("t")
+    #     plt.ylabel("y")
+    #     plt.show()
+    #     plt.figure(2)
+    #     plt.plot(t_eval, y_err)
+    #     plt.xlabel("t")
+    #     plt.ylabel("err")
+    #     plt.show()
+    #     plt.figure(3)
+    #     for j in range(y_incs.shape[0]):
+    #         plt.plot(t_eval, y_incs[j, :])
+    #     plt.xlabel("t")
+    #     plt.ylabel("y")
+    #     plt.show()
 
     # Step 3: Extract weights for Neural Net and instantiate object
     _, s, ab = ua.find_nn_params(t_in=np.linspace(0, x_lim, 250), fun=ua.wiggles_fun)
-    params = [ab[0], ab[1], s]
+    params = [ab[:, 0], ab[:, 1], s]
     nn = UANet(params)
 
     # Step 4: Check nn approximation
@@ -276,14 +279,16 @@ if __name__ == "__main__":
     y_truth = ua.fun(t_space)
     err = y_nn-y_truth
     if plotting:
-        plt.figure(4)
-        plt.plot(t_space, y_nn, label='nn output')
-        plt.plot(t_space, y_truth, label='truth')
-        plt.xlabel('t')
-        plt.ylabel('y')
-        plt.legend()
-        plt.figure(5)
-        plt.plot(t_space, err)
-        plt.xlabel('t')
-        plt.ylabel('err')
+        fig = plt.figure(figsize=(8, 6))
+        ax1 = fig.add_subplot(2, 1, 1)
+        ax2 = fig.add_subplot(2, 1, 2)
+        ax1.title.set_text("Model predictions vs ground truth")
+        ax2.title.set_text("Error")
+        ax1.plot(t_space, y_truth, label='truth')
+        ax1.plot(t_space, y_nn, label='nn output')
+        ax1.set(xlabel='t', ylabel='y')
+        ax1.legend()
+        ax2.plot(t_space, err)
+        ax2.set(xlabel='t', ylabel='err')
+        fig.tight_layout()
         plt.show()
