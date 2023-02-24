@@ -71,7 +71,7 @@ class FCNetTo(MLPipeline):
             od[f"linear_{j}"] = nn.Linear(dims[j], dims[j + 1])
             if params is not None:
                 od[f"linear_{j}"].weight = nn.Parameter(torch.tensor(weights[j], requires_grad=True).float())
-                od[f"linear_{j}"].bias = nn.Parameter(torch.tensor(bias[j], requires_grad=True))
+                od[f"linear_{j}"].bias = nn.Parameter(torch.tensor(bias[j], requires_grad=True).float()) # CY: added .float()
             od[f"activation_{j}"] = self.activation
 
         self.forward_stack = nn.Sequential(od)
