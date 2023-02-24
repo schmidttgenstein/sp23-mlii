@@ -176,25 +176,25 @@ class UANet(MLPipeline):
             Aside from hashing out the constructor, you will only need to implement the forward method for this 
             class, how simple!
         """
-        w_temp = 1/params[0]  # TODO: why 1/w?
-        w_temp_concat = np.concatenate((w_temp, w_temp), axis=0).reshape((1, w_temp.shape[0]*2))  # TODO: why duplicate w's?
-        weights = w_temp_concat[:, 1:-1]  # TODO: how does this even make sense?
+        w_temp = 1/params[0]  # why 1/w? A: to make explicit linear relationship
+        w_temp_concat = np.concatenate((w_temp, w_temp), axis=0).reshape((1, w_temp.shape[0]*2))  # why duplicate w's? A: because you have activating and inactivating functions
+        weights = w_temp_concat[:, 1:-1]  # how does this even make sense? A: the 2 functions at the left and right side don't inactivate 
         b_temp = params[1]
-        b_temp_stack = np.vstack((b_temp, b_temp))  # TODO: why duplicate b's?
-        b_temp_reshape = b_temp_stack.reshape((1, b_temp_stack.shape[1]*2), order="F")  # TODO: why?
-        bias = b_temp_reshape[:, 1:-1]  # TODO: how does this even make sense?
+        b_temp_stack = np.vstack((b_temp, b_temp))  # why duplicate b's?
+        b_temp_reshape = b_temp_stack.reshape((1, b_temp_stack.shape[1]*2), order="F")  # why? A: because you have activating and inactivating functions
+        bias = b_temp_reshape[:, 1:-1]  # how does this even make sense? A: the 2 functions at the left and right side don't inactivate 
         f_temp = params[2]
-        f_temp_stack = np.vstack((f_temp, f_temp))  # TODO: why duplicate f's?
-        f_temp_stack[1, :] = -1 * f_temp_stack[1, :]  # TODO: why alternate f between + and -?
-        f_temp_reshape = f_temp_stack.reshape((1, f_temp_stack.shape[1]*2), order="F")  # TODO: why?
-        f_val = f_temp_reshape[:, :-2]  # TODO: why is this one different (i.e., [:, :-2] instead of [:, 1:-1])?
+        f_temp_stack = np.vstack((f_temp, f_temp))  # why duplicate f's? A: because you have activating and inactivating functions
+        f_temp_stack[1, :] = -1 * f_temp_stack[1, :]  # why alternate f between + and -? A: because you have activating and inactivating functions
+        f_temp_reshape = f_temp_stack.reshape((1, f_temp_stack.shape[1]*2), order="F")  # why? A: because you have activating and inactivating functions
+        f_val = f_temp_reshape[:, :-2]  # why is this one different (i.e., [:, :-2] instead of [:, 1:-1])?
         self.weights = weights
         self.bias = bias
         self.f_val = f_val
 
     def forward(self, x):
         # computes the forward pass for network x -> z = wx+b -> a = sigm(z) -> c*a
-        z = self.weights.transpose() @ x - self.weights.transpose() * self.bias.transpose()  # TODO: why multiply bias by weight?
+        z = self.weights.transpose() @ x - self.weights.transpose() * self.bias.transpose()  # why multiply bias by weight?
         a = self.sigmoid(z)
         f = self.f_val @ a
         g = f[-1]
