@@ -64,6 +64,7 @@ class FCNetTo(MLPipeline):
             dims = [weights[0].shape[0]] # CY: shape[1]->shape[0]
             for w in weights:
                 dims.append(w.shape[1]) # CY: shape[0]->shape[1]
+            self.dims = dims
         od = OrderedDict()
         self.activation = nn.Sigmoid()
         for j in range(len(dims) - 1):
@@ -76,8 +77,7 @@ class FCNetTo(MLPipeline):
         self.forward_stack = nn.Sequential(od)
 
     def forward(self, x):
-        x = torch.Tensor(x)
-        return self.forward_stack(torch.transpose(x, 0, 1)) # TODO: RuntimeError: self and mat2 must have the same dtype
+        return self.forward_stack(torch.transpose(x, 0, 1))
 
 
 class FCNetFS(MLPipeline):
@@ -164,16 +164,16 @@ if __name__ == "__main__":
     n_samp = 350
     tspace = np.linspace(-15, 15, n_samp).reshape(1, n_samp)
     y1 = anet.forward(tspace)
-    # y2 = bnet.forward(tspace)
+    y2 = bnet.forward(torch.tensor(tspace).float()) # CY: tspace->torch.tensor(tspace).float()
     # Step 1.5 sanity check: can you reproduce From Scratch network with prespecified weights params?
     a2net = FCNetFS(params=in_params)
     y3 = a2net.forward(tspace)
     plt.figure(1)
     plt.plot(tspace.flatten(), y1.flatten())
-    # plt.plot(tspace.flatten(), y2.detach().numpy(), '--')
+    plt.plot(tspace.flatten(), y2.detach().numpy(), '--')
     plt.figure(2)
-    # plt.plot(tspace.flatten(),
-    #          np.abs(y1.flatten() - y2.detach().numpy().flatten()) + np.abs(y1.flatten() - y3.flatten()))
+    plt.plot(tspace.flatten(),
+             np.abs(y1.flatten() - y2.detach().numpy().flatten()) + np.abs(y1.flatten() - y3.flatten()))
 
     # Step 2: Generate "To[rch]" Network and Instantiate from scratch network with these weights
     cnet = FCNetTo(dims=[1, 7, 5, 7, 1])
@@ -184,7 +184,7 @@ if __name__ == "__main__":
             w = np.transpose(layer.weight.detach()) # CY: layer.weight.detach()->np.transpose(layer.weight.detach())
             weights.append(w.numpy()) # CY: ->.numpy()
             b = np.transpose(layer.bias.detach()) # CY: created b
-            bias.append(b.numpy()) # # CY: appended to bias
+            bias.append(b.numpy()) # CY: appended to bias
     params = [weights, bias]
     dnet = FCNetFS(params)
     y3 = cnet.forward(torch.tensor(tspace).float())
