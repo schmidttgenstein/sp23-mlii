@@ -64,7 +64,7 @@ class FCNetTo(MLPipeline):
             dims = [weights[0].shape[0]] # CY: shape[1]->shape[0]
             for w in weights:
                 dims.append(w.shape[1]) # CY: shape[0]->shape[1]
-            self.dims = dims
+            self.dims = dims # CY: added self.dims
         od = OrderedDict()
         self.activation = nn.Sigmoid()
         for j in range(len(dims) - 1):
