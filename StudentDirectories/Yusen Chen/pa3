@@ -54,6 +54,7 @@ class MLPipeline:
             self.m = m
 
 
+
 class FCNetTo(MLPipeline):
     def __init__(self,params:list=None,dims:list=None, epoch:int= 250, lr = 0.05,):
         super().__init__(epochs = epoch, lr = lr )
@@ -62,22 +63,23 @@ class FCNetTo(MLPipeline):
         elif params is not None:
             weights = params[0]
             bias = params[1]
-            dims = [weights[0].shape[1]]
+            dims = [weights[0].shape[0]] #CORRECTED
             for w in weights: 
-                dims.append(w.shape[0])
+                dims.append(w.shape[1])
         od = OrderedDict()
         self.activation = nn.Sigmoid() 
         for j in range(len(dims)-1):
             od[f"linear_{j}"] = nn.Linear(dims[j],dims[j+1])
             if params is not None:
                 od[f"linear_{j}"].weight = nn.Parameter(torch.tensor(weights[j],requires_grad = True).float())
-                od[f"linear_{j}"].bias = nn.Parameter(torch.tensor(bias[j],requires_grad = True))
+                od[f"linear_{j}"].bias = nn.Parameter(torch.tensor(bias[j],requires_grad = True).float()) #CORRECTED
             od[f"activation_{j}"] = self.activation
 
         self.forward_stack = nn.Sequential(od)
 
     def forward(self,x):
         return self.forward_stack(torch.transpose(x,0,1))
+
 
 class FCNetFS(MLPipeline):
     def __init__(self,params:list=None, dims:list=None,epochs:int = 1500,lr = .01,):
@@ -86,7 +88,7 @@ class FCNetFS(MLPipeline):
             weights = []
             bias = []
             for j in range(int(len(dims)-1)):
-                w = 10 * (np.random.random([dims[j],dims[j+1]])-.5)
+                w = 10 * (np.random.random([dims[j],dims[j+1]])-.5) 
                 b = 10 * (np.random.random(dims[j+1]) - .5)
                 weights.append(w)
                 bias.append(b)
@@ -95,7 +97,7 @@ class FCNetFS(MLPipeline):
             bias = params[1]
             self.weights = weights 
             self.bias = bias
-            dims = [weights[0].shape[0]]
+            dims = [weights[0].shape[1]]
             for w in weights: 
                 dims.append(w.shape[0])
         self.weights = weights 
@@ -114,7 +116,7 @@ class FCNetFS(MLPipeline):
         a = x 
         layer_acts = [a]
         for weight in self.weights:
-            z_pre = weight @  a 
+            z_pre = a.transpose @ weight   
             z = z_pre + self.bias[j]
             if j < self.n_layers - 1:
                 a = self.activation(z)
@@ -152,6 +154,7 @@ class FCNetFS(MLPipeline):
 
 
 
+
 if __name__ == "__main__":
     #Step 0: No errors here, insantiate a network and "look at it" (you can skip)
     onet = FCNetFS(dims = [1,2,3,1])
@@ -160,14 +163,14 @@ if __name__ == "__main__":
     onet.dims 
     
     #Step 1: Generate "From Scratch" Network and Instantiate Torch Network with these weights
-    anet = FCNetFS(dims = [1,5,3,5,1],epoch = 250, lr = 0.01)
-    in_params = anet.weights
+    anet = FCNetFS(dims = [1,5,3,5,1],epochs = 250, lr = 0.01)
+    in_params = [anet.weights, anet.bias] 
     bnet = FCNetTo(params=in_params)
     #Before continuing, examine your bnet.forward_stack to ensure that layers are coordinated as you 
     n_samp = 350
-    tspace = np.linspace(-15,15,n_samp)
-    y1 =  anet.forward(tspace)
-    y2 = bnet.forward(tspace)
+    tspace = np.linspace(-15,15,n_samp).reshape(1, n_samp) 
+    y1 = anet.forward(tspace)
+    y2 = bnet.forward(tspace) 
     #Step 1.5 sanity check: can you reproduce From Scratch network with prespecified weights params?
     a2net = FCNetFS(params=in_params)
     y3 = a2net.forward(tspace) 
@@ -184,8 +187,9 @@ if __name__ == "__main__":
     bias = []
     for layer in cnet.forward_stack:
         if isinstance(layer,nn.Linear):
-            weights.append(layer.weight.detach())
-    params = [weights,bias]
+            weights.append(np.transpose(layer.weight.detach().cpu().numpy()))
+            bias.append(np.transpose(layer.bias.detach().cpu().numpy()))
+    params = [weights, bias]    
     dnet = FCNetFS(params)
 
     y3 =  cnet.forward(torch.tensor(tspace).float())
