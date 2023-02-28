@@ -176,16 +176,25 @@ class UANet(MLPipeline):
             Aside from hashing out the constructor, you will only need to implement the forward method for this 
             class, how simple!
         """
-        w_temp = 1/params[0]  # TODO: why 1/w?
+        w_temp = 1/params[0]  # why 1/w? A: to make explicit linear relationship
+        w_temp_concat = np.concatenate((w_temp, w_temp), axis=0).reshape((1, w_temp.shape[0]*2))  # why duplicate w's? A: because you have activating and inactivating functions
+        weights = w_temp_concat[:, 1:-1]  # how does this even make sense? A: the 2 functions at the left and right side don't inactivate 
         b_temp = params[1]
+        b_temp_stack = np.vstack((b_temp, b_temp))  # why duplicate b's?
+        b_temp_reshape = b_temp_stack.reshape((1, b_temp_stack.shape[1]*2), order="F")  # why? A: because you have activating and inactivating functions
+        bias = b_temp_reshape[:, 1:-1]  # how does this even make sense? A: the 2 functions at the left and right side don't inactivate 
         f_temp = params[2]
-        self.weights = w_temp.reshape((1, w_temp.shape[0]))
-        self.bias = b_temp.reshape((1, b_temp.shape[0]))
-        self.f_val = np.stack((f_temp, f_temp))
+        f_temp_stack = np.vstack((f_temp, f_temp))  # why duplicate f's? A: because you have activating and inactivating functions
+        f_temp_stack[1, :] = -1 * f_temp_stack[1, :]  # why alternate f between + and -? A: because you have activating and inactivating functions
+        f_temp_reshape = f_temp_stack.reshape((1, f_temp_stack.shape[1]*2), order="F")  # why? A: because you have activating and inactivating functions
+        f_val = f_temp_reshape[:, :-2]  # why is this one different (i.e., [:, :-2] instead of [:, 1:-1])?
+        self.weights = weights
+        self.bias = bias
+        self.f_val = f_val
 
     def forward(self, x):
         # computes the forward pass for network x -> z = wx+b -> a = sigm(z) -> c*a
-        z = self.weights.transpose() @ x + self.bias.transpose()
+        z = self.weights.transpose() @ x - self.weights.transpose() * self.bias.transpose()  # why multiply bias by weight?
         a = self.sigmoid(z)
         f = self.f_val @ a
         g = f[-1]
@@ -221,19 +230,19 @@ if __name__ == "__main__":
     plotting = True
 
     # Step 1: instantiate your UniversalApprox Object
-    eps = .025
+    eps = .01
     ua = UniversalApprox(epsilon=eps)
 
     # Step 2: Generate approximations with po1
     # If you use my wiggles_fun, it has an exp, so don't go wild on your domain
     # need sample linspace for function approximation, and denser linspace for evaluation
     x_lim = 3
-    t_space = np.linspace(0, x_lim, 30)
+    t_space = np.linspace(0, x_lim, 60)
     t_dense = np.linspace(0, x_lim, 2500)
     # 2.a: check the a,b solve
     # expect y values of sigmoidal to correspond to those provided (y_points)
     # at specified x values (x_points). Play around with this until you understand it
-    x_points = np.array([0, 3])
+    x_points = np.array([0, 2])
     y_points = np.array([eps, 1-eps])
     ab = ua.solve_ab(x_points, y_points)
     sigm = ua.sigma(t_dense, ab[0], ab[1])
