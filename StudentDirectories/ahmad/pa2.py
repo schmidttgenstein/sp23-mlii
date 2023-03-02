@@ -141,14 +141,23 @@ class UniversalApprox:
 class UANet(MLPipeline):
     def __init__(self,params):
         super().__init__()
-        ''' 
-        w_temp = params[0]
-        b_temp = params[1]
-        f_temp = params[2]
-
+        
+        w_temp =np.matlib.repmat(1/params[0],1,2) 
+        b_temp = np.matlib.repmat(params[1],2,1)
+        f_temp = np.matlib.repmat(params[2],2,1)
+        f_temp[1,:] = -1 * f_temp[1,:]
+        F_temp = f_temp
+        bt = b_temp.reshape((b_temp.shape[1],2),order = 'F').reshape((1,b_temp.shape[1]*2),order = 'F')
+        ft = F_temp.reshape((F_temp.shape[1],2),order = 'F').reshape((1,F_temp.shape[1]*2),order = 'F')
+        bias = bt[:,1:-1]
+        weights = w_temp[:,1:-1]
+        self.weights = weights 
+        self.bias = bias 
+        self.f_val = ft[:,:-2]
     def forward(self,x):
         ## computes the forward pass for network x -> z = wx+b -> a = sigm(z) -> c*a
-        
+        z = self.weights.transpose() @ x + self.bias.tranpose()
+        a = self.sigmoid()
         return None
 
 
@@ -236,12 +245,14 @@ if __name__ == "__main__":
     ''' 
     _,s,ab = ua.find_nn_params(t_in = np.linspace(0,x_lim,250),fun = ua.wiggles_fun,)
     params = [ab[0],ab[1],s]
-    nn = UANet(params)'''
+    nn = UANet(params)
+    '''
 
     ### Step 4: Check nn approximation
     ## extending domain to show that the nn will only work for the domain of approximations 
     # you found earlier
     ''' 
+   
     t_space = np.linspace(-1,x_lim+1,10000)
     y_nn = nn.forward(t_space.reshape((1,t_space.shape[0])))
     y_truth = ua.fun(t_space)
