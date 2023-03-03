@@ -9,3 +9,4 @@ ADAM: A Method for Stochastic Optimization,Kingma,https://arxiv.org/pdf/1412.698
 Batch Normalization: ,Ioffe and Szegedy,https://arxiv.org/pdf/1502.03167.pdf,,,,
 Intriguing Properties of Neural Networks,Szegedy,https://arxiv.org/pdf/1312.6199.pdf,Eleanor Belkin,Carolyna Yamamoto,Daniel*, Anqi Feng
 Explaining and Harnessing Adversarial Examples,Goodfellow + Szegedy ,https://arxiv.org/pdf/1412.6572.pdf,Avisha Kumar,Daniel,Jack Krew*,Anqi Feng
+Stability and Generalization,Bousquet and Elisseeff,https://www.jmlr.org/papers/volume2/bousquet02a/bousquet02a.pdf,Jack Krew
