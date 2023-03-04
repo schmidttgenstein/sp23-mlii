@@ -246,12 +246,8 @@ if __name__ == "__main__":
     # A larger mu_factor will better separate means and therefore class data 
     # We'll keep this large before getting backprop running
     xtr, ytr, xte, yte = dg.gen_data(mu_factor=5)
-    '''
     dg.probe_dat(xtr,ytr)
-    plt.show()
-    plt.clf()
-    '''
-
+   
     # Step 1: instantiate 1 hidden layer nn for binary classification task and 
     # define cost function returning cost + d cost/d nu 
     anet = FCNetFS(dims=[input_dim, 20, 2], epochs=150, lr=1)
