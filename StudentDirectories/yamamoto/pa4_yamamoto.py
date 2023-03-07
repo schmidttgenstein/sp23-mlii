@@ -53,50 +53,51 @@ class DataGen:
 
 class MLPipeline:
     def __init__(self, epochs=10, lr=0.025):
-        # In this constructor we set the model complexity, number of epochs for training, 
-        # and learning rate lr. You should think of complexity here as "number of parameters"
-        # defining model. In linear regression, this e.g. may be (deg of poly)-1.
+        # In this constructor we set the model complexity, number of epochs for 
+        # training, and learning rate lr. You should think of complexity here as 
+        # "number of parameters" defining model. In linear regression, this e.g. 
+        # may be (deg of poly)-1.
         self.epochs = epochs
         self.lr = lr
 
-    def gen_data(self, ):
-        raise NotImplementedError
+    # def gen_data(self, ):
+    #     raise NotImplementedError
 
-    def loss(self, ):
-        raise NotImplementedError
+    # def loss(self, ):
+    #     raise NotImplementedError
 
-    def forward(self, ):
-        raise NotImplementedError
+    # def forward(self, ):
+    #     raise NotImplementedError
 
-    def full_forward(self, ):
-        raise NotImplementedError
+    # def full_forward(self, ):
+    #     raise NotImplementedError
 
-    def backward(self, ):
-        raise NotImplementedError
+    # def backward(self, ):
+    #     raise NotImplementedError
 
-    def update(self, ):
-        raise NotImplementedError
+    # def update(self, ):
+    #     raise NotImplementedError
 
-    def metrics(self, x, y):
-        raise NotImplementedError
+    # def metrics(self, x, y):
+    #     raise NotImplementedError
 
     def train_step(self, x_in, y_truth):
         '''
-            returning y_pred so that a redundant call to forward isn't 
-            required 
+        returning y_pred so that a redundant call to forward isn't required 
         '''
         # need to properly define train_step (forward, backward, + update)
-        y_layers = [y_truth]
-        grad = [dw, db]
+        y_layers = self.full_forward(x_in)
+        grad = self.backward(y_layers, y_truth)
         self.update(grad)
-        # do not absolutely need to return anything but it'll be convenient to have
-        # the model eval returned 
+        # do not absolutely need to return anything but it'll be convenient to 
+        # have the model eval returned 
         return y_layers[-1]
 
     def fit(self, x_data, y_data, x_eval, y_eval, printing=False):
         # This method implements our "1. forward 2. backward 3. update paradigm"
         # it should call forward(), grad(), and update(), in that order. 
-        # you should also call metrics so that you may print progress during training
+        # you should also call metrics so that you may print progress during 
+        # training
         for epoch in range(self.epochs):
             y_pred = self.train_step(x_data, y_data)
             if printing and (epoch % 25 == 0):
@@ -105,11 +106,13 @@ class MLPipeline:
                 m_te = self.metrics(y_pred_eval, y_eval)
                 a_disc = np.abs(m_te[1] - m_tr[1])
                 l_disc = np.abs(m_te[0] - m_tr[0])
-                print(f"epoch {epoch}: acc {m_te[1]:.3f}, acc discrep {a_disc:.3f}, loss disc {l_disc:.3f}")
+                print(f"epoch {epoch}: acc {m_te[1]:.3f}, acc discrep \
+                      {a_disc:.3f}, loss disc {l_disc:.3f}")
 
 
 class FCNetFS(MLPipeline):
-    def __init__(self, params: list = None, dims: list = None, epochs: int = 10, lr=.01, ):
+    def __init__(self, params: list = None, dims: list = None, epochs: int = 10, 
+                 lr=.01, ):
         super().__init__(epochs=epochs, lr=lr)
         if params is None:
             weights = []
@@ -122,8 +125,8 @@ class FCNetFS(MLPipeline):
         else:
             weights = params[0]
             bias = params[1]
-            self.weights = weights
-            self.bias = bias
+            # self.weights = weights
+            # self.bias = bias
             dims = [weights[0].shape[1]]
             for w in weights:
                 dims.append(w.shape[0])
@@ -159,42 +162,50 @@ class FCNetFS(MLPipeline):
         return layer_acts
 
     def backward(self, y_layers, y_truth):
-        ''' your work is here!:
-        y_layers = [a^0=x,a^1,...,a^L+1 = nu(x)]
+        ''' 
+        your work is here!: y_layers = [a^0=x,a^1,...,a^L+1 = nu(x)]
         '''
-        # y_score =  # grab the output of network
-        # _, dc =  # start with gradient of cost wrt output (should be 2 x m)
-        # we initialize lists to track gradients. 
-        # note that parameters w and b are held in lists in the class 
-        # w = [w^0,w^1,\ldots] and similarly for b, corresponding to [z^0,z^1,...]
+        # grab the output of network
+        y_score =  y_layers[-1]
+        # start with gradient of cost wrt output (should be 2 x m)
+        _, dc =  self.cost(y_score, y_truth)
+        # We initialize lists to track gradients. Note that parameters w and b 
+        # are held in lists in the class w = [w^0,w^1,...] and similarly for 
+        # b, corresponding to [z^0,z^1,...]
         db_list = []
         dw_list = []
         for j in range(len(y_layers) - 1):
-            ''' recalling that backprop is "just" the chain rule + keep track of some info 
-            at each step, we're going to layer-wise compute 
-            dc/dparam = dc/dnu * dnu / dz^j * dz^j / dparam.
-            We saw in class that we'll basically have a product of dz^{j+1}/dz^j
-            which is dz^{j+1} / da^{j+1} * da^{j+1} / dz^j. While this is true, 
-            for the first step, we'll only use one of these, and therefore split the product
-            by computing the other half at the end of the loop
+            ''' 
+            recalling that backprop is "just" the chain rule + keep track of 
+            some info at each step, we're going to layer-wise compute 
+            dc/dparam = dc/dnu * dnu / dz^j * dz^j / dparam. We saw in class 
+            that we'll basically have a product of dz^{j+1}/dz^j which is 
+            dz^{j+1} / da^{j+1} * da^{j+1} / dz^j. While this is true, for the 
+            first step, we'll only use one of these, and therefore split the 
+            product by computing the other half at the end of the loop
             '''
             idx = -(j + 1)
             y_layer = y_layers[idx]
-            # dadz =  # this is basically sigma'(z)
-            # dc *=  ## we are going to use dc to track the backprop,
-            # i.e. dc is a glorified history of our use of the chain rule  
-            # a_prev =  ## we need the previous layer's activation for dc/dw
+             # this is basically sigma'(z)
+            dadz = y_layer * (1 - y_layer) # TODO: why? what is dadz?
+            # we are going to use dc to track the backprop, i.e. dc is a 
+            # glorified history of our use of the chain rule  
+            dc *= dadz # TODO: is this dz^{j+1} / da^{j+1}?
+            # we need the previous layer's activation for dc/dw
+            a_prev = y_layers[idx-1]
             db = dc.mean(axis=1)  # I'll give you db
-            # dw =  # make sure you get the dimensions aligned. There may be some
-            # transposing required. Use of the debugger will come in handy here.
+            # make sure you get the dimensions aligned. There may be some 
+            # transposing required. Use of the debugger will come in handy here
+            dw = (a_prev @ dc.transpose()).transpose()/a_prev.shape[1] # TODO: why?
             db_list.append(db)
             dw_list.append(dw)
             weight = self.weights[idx]
-            # dc =  ## Now you can use the other half of the dz^j+1/dz^j computation
-            # recall that we are mapping R^{n_{j+1}} --> R^{n_j}!, so you might have 
-            # or need another judicious use of transpose 
-        # reversing the list because in gradient update we'll iterate through params, 
-        # and they're stored starting with early layers first
+            # now you can use the other half of the dz^j+1/dz^j computation
+            # recall that we are mapping R^{n_{j+1}} --> R^{n_j}!, so you might 
+            # have or need another judicious use of transpose 
+            dc = weight.transpose() @ dc # TODO: why?
+        # reversing the list because in gradient update we'll iterate through 
+        # params, and they're stored starting with early layers first
         db_list.reverse()
         dw_list.reverse()
         grad = zip(dw_list, db_list)
@@ -208,8 +219,8 @@ class FCNetFS(MLPipeline):
             j += 1
         return None
 
-    def metrics(self, x, y):
-        return None
+    # def metrics(self, x, y):
+    #     return None
 
     def activation(self, z):
         return self.sigmoid(z)
@@ -258,27 +269,25 @@ if __name__ == "__main__":
     # ... and don't be lazy, don't *just* try each and see what
     # catches the following 'if' statement 
     dc_dir = 0
-    # dc_dir  = (np.sign(dc) == +/- np.sign(ytr - y_score)).mean()
+    dc_dir = (np.sign(dc) == - np.sign(ytr - y_score)).mean()
     if dc_dir == 1:
         print('dc/dnu points in the right direction!')
 
-    # Step 2: define backward() method in FCNetFS and
-    # train_step() (forward, backward, update) in MLPipeline
-    # if prob_dat() shows a plot with separated classes, your 
-    # accuracy should hit 100%
-    # anet.fit(xtr,ytr,xte,yte,printing = True)
+    # Step 2: define backward() method in FCNetFS and train_step() (forward, 
+    # backward, update) in MLPipeline if prob_dat() shows a plot with separated 
+    # classes, your accuracy should hit 100%
+    anet.fit(xtr, ytr, xte, yte, printing = True)
 
-    # Step 3: let's make things harder, just check that you can 
-    # still construct a good model
+    # Step 3: let's make things harder, just check that you can still construct 
+    # a good model
     input_dim = 15
     dg = DataGen(dim=input_dim)
     xtr, ytr, xte, yte = dg.gen_data(mu_factor=.5)
     # you may not see much now separation with prob_dat()
-    '''
     for j in range(input_dim):
             plt.figure(j)
             dg.probe_dat(xtr,ytr,j)
     plt.show()
     bnet = FCNetFS(dims = [input_dim,20,15,10,2],epochs = 500,lr = 1)
     bnet.fit(xtr,ytr,xte,yte,printing = True)
-    '''
+
